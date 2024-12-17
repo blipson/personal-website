@@ -1,4 +1,6 @@
-/*
+# Ben Gangl-Lipson's Personal Website
+
+## License
     Personal website of Ben Gangl-Lipson
     Copyright (C) 2024 Ben Gangl-Lipson
 
@@ -14,13 +16,16 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
 
-use rocket::local::blocking::Client;
+## Prerequisites
+    rustc 1.83.0 (90b35a623 2024-11-26)
 
-#[test]
-fn health_check() {
-    let client = Client::tracked(super::rocket()).unwrap();
-    let response = client.get("/up").dispatch();
-    assert_eq!(response.into_string(), Some("Healthy".into()));
-}
+## Building
+```shell
+  cargo build
+```
+
+## Running
+```shell
+  cargo run
+```
