@@ -17,16 +17,21 @@
 */
 
 #[macro_use] extern crate rocket;
-#[macro_use]extern crate rocket_include_static_resources;
 
 use rocket::serde::{json::Json, Deserialize, Serialize};
-
-static_response_handler! {
-    "/favicon.ico" => favicon => "favicon",
-    "/favicon-16.png" => favicon_png => "favicon-png",
-}
+use rocket::{Request};
 
 #[cfg(test)] mod tests;
+
+#[catch(500)]
+fn internal_error() -> &'static str {
+    "Whoops! Looks like we messed up."
+}
+
+#[catch(404)]
+fn not_found(req: &Request) -> String {
+    format!("I couldn't find '{}'. Try something else?", req.uri())
+}
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(crate = "rocket::serde")]
@@ -59,13 +64,12 @@ fn root() -> Json<Health> {
 fn rocket() -> _ {
     println!("
         Personal website of Ben Gangl-Lipson  Copyright (C) 2024  Ben Gangl-Lipson
-        This program comes with ABSOLUTELY NO WARRANTY. This is free software, and
-        you are welcome to redistribute it under certain conditions.
+        This program comes with ABSOLUTELY NO WARRANTY; for details navigate to `/WARRANTY'.
+        This is free software, and you are welcome to redistribute it
+        under certain conditions; navigate to `/LICENSE' for details.
     ");
     rocket::build()
-        .attach(static_resources_initializer!(
-            "favicon.ico" => "static/favicon.ico",
-        ))
-        .mount("/", routes![health])
-        .mount("/", routes![root])
+        .mount("/", routes![health, root])
+        .mount("/", rocket::fs::FileServer::from("static"))
+        .register("/", catchers![not_found, internal_error])
 }
