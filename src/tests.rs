@@ -17,10 +17,30 @@
 */
 
 use rocket::local::blocking::Client;
+use crate::{Health, HealthStatus};
 
 #[test]
-fn health_check() {
+fn health() {
     let client = Client::tracked(super::rocket()).unwrap();
-    let response = client.get("/up").dispatch();
-    assert_eq!(response.into_string(), Some("Healthy".into()));
+    let response = client.get("/health").dispatch();
+    let health_response: Option<Health> = response.into_json().unwrap();
+    assert_eq!(
+        health_response,
+        Some(Health {
+            status: HealthStatus::HEALTHY,
+        })
+    );
+}
+
+#[test]
+fn root() {
+    let client = Client::tracked(super::rocket()).unwrap();
+    let response = client.get("/").dispatch();
+    let health_response: Option<Health> = response.into_json().unwrap();
+    assert_eq!(
+        health_response,
+        Some(Health {
+            status: HealthStatus::HEALTHY,
+        })
+    );
 }

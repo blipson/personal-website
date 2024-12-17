@@ -17,12 +17,42 @@
 */
 
 #[macro_use] extern crate rocket;
+#[macro_use]extern crate rocket_include_static_resources;
+
+use rocket::serde::{json::Json, Deserialize, Serialize};
+
+static_response_handler! {
+    "/favicon.ico" => favicon => "favicon",
+    "/favicon-16.png" => favicon_png => "favicon-png",
+}
 
 #[cfg(test)] mod tests;
 
-#[get("/up")]
-fn up() -> &'static str {
-    "Healthy"
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(crate = "rocket::serde")]
+enum HealthStatus {
+    HEALTHY,
+    UNHEALTHY,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(crate = "rocket::serde")]
+struct Health {
+    status: HealthStatus,
+}
+
+#[get("/health")]
+fn health() -> Json<Health> {
+    Json(Health {
+        status: HealthStatus::HEALTHY
+    })
+}
+
+#[get("/")]
+fn root() -> Json<Health> {
+    Json(Health {
+        status: HealthStatus::HEALTHY
+    })
 }
 
 #[launch]
@@ -33,5 +63,9 @@ fn rocket() -> _ {
         you are welcome to redistribute it under certain conditions.
     ");
     rocket::build()
-        .mount("/", routes![up])
+        .attach(static_resources_initializer!(
+            "favicon.ico" => "static/favicon.ico",
+        ))
+        .mount("/", routes![health])
+        .mount("/", routes![root])
 }

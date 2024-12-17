@@ -5,4 +5,5 @@ version = "0.0.0"
 publish = false
 
 [dependencies]
-rocket = "0.5"
+rocket = { version = "0.5.1", features = ["json"] }
+rocket-include-static-resources = "0.10.5"
