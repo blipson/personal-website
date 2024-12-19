@@ -38,7 +38,6 @@ async fn not_found() -> Result<NamedFile, std::io::Error> {
     let chosen = file_names.choose(&mut rand::thread_rng());
     let dir = "static/404";
     if let Some(file) = chosen {
-        println!("{}", chosen.unwrap());
         NamedFile::open(Path::new(dir).join(file)).await
     } else {
         NamedFile::open("static/404/confucius.html").await
