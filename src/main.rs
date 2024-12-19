@@ -18,8 +18,12 @@
 
 #[macro_use] extern crate rocket;
 
+use std::io;
+use std::path::Path;
+use rand::seq::SliceRandom;
 use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::{Request};
+use rocket::fs::NamedFile;
 
 #[cfg(test)] mod tests;
 
@@ -29,8 +33,17 @@ fn internal_error() -> &'static str {
 }
 
 #[catch(404)]
-fn not_found(req: &Request) -> String {
-    format!("I couldn't find '{}'. Try something else?", req.uri())
+async fn not_found() -> Result<NamedFile, std::io::Error> {
+    let file_names = vec!["confucius.html", "plato.html"];
+    let chosen = file_names.choose(&mut rand::thread_rng());
+    let dir = "static/404";
+    if let Some(file) = chosen {
+        println!("{}", chosen.unwrap());
+        NamedFile::open(Path::new(dir).join(file)).await
+    } else {
+        NamedFile::open("static/404/confucius.html").await
+    }
+
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -54,10 +67,8 @@ fn health() -> Json<Health> {
 }
 
 #[get("/")]
-fn root() -> Json<Health> {
-    Json(Health {
-        status: HealthStatus::HEALTHY
-    })
+async fn root() -> Result<NamedFile, std::io::Error> {
+    NamedFile::open("static/index.html").await
 }
 
 #[launch]
@@ -70,6 +81,6 @@ fn rocket() -> _ {
     ");
     rocket::build()
         .mount("/", routes![health, root])
-        .mount("/", rocket::fs::FileServer::from("static"))
+        .mount("/", rocket::fs::FileServer::from("license"))
         .register("/", catchers![not_found, internal_error])
 }
