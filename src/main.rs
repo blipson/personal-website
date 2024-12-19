@@ -34,7 +34,7 @@ fn internal_error() -> &'static str {
 
 #[catch(404)]
 async fn not_found() -> Result<NamedFile, std::io::Error> {
-    let file_names = vec!["confucius.html", "plato.html"];
+    let file_names = vec!["confucius.html", "plato.html", "aristotle.html"];
     let chosen = file_names.choose(&mut rand::thread_rng());
     let dir = "static/404";
     if let Some(file) = chosen {
