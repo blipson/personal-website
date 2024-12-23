@@ -16,21 +16,5 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#[macro_use] extern crate rocket;
-
-mod controller;
-mod domain;
-
-#[launch]
-pub fn rocket() -> _ {
-    println!("
-        Personal website of Ben Gangl-Lipson  Copyright (C) 2024  Ben Gangl-Lipson
-        This program comes with ABSOLUTELY NO WARRANTY; for details navigate to `/WARRANTY'.
-        This is free software, and you are welcome to redistribute it
-        under certain conditions; navigate to `/LICENSE' for details.
-    ");
-    rocket::build()
-        .mount("/", routes![controller::home::health, controller::home::root])
-        .mount("/", rocket::fs::FileServer::from("license"))
-        .register("/", catchers![controller::home::not_found, controller::home::internal_error])
-}
+pub mod health;
+pub mod health_status;

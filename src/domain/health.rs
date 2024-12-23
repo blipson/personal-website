@@ -16,31 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use rocket::local::blocking::Client;
-use crate::{Health, HealthStatus};
+use rocket::serde::{Deserialize, Serialize};
+use crate::domain::health_status::HealthStatus;
 
-#[test]
-fn health() {
-    let client = Client::tracked(super::rocket()).unwrap();
-    let response = client.get("/health").dispatch();
-    let health_response: Option<Health> = response.into_json().unwrap();
-    assert_eq!(
-        health_response,
-        Some(Health {
-            status: HealthStatus::HEALTHY,
-        })
-    );
-}
-
-#[test]
-fn root() {
-    let client = Client::tracked(super::rocket()).unwrap();
-    let response = client.get("/").dispatch();
-    let health_response: Option<Health> = response.into_json().unwrap();
-    assert_eq!(
-        health_response,
-        Some(Health {
-            status: HealthStatus::HEALTHY,
-        })
-    );
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(crate = "rocket::serde")]
+pub struct Health {
+    pub status: HealthStatus,
 }
