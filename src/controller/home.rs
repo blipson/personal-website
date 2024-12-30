@@ -33,7 +33,7 @@ pub fn internal_error() -> &'static str {
 pub async fn not_found() -> Result<NamedFile, std::io::Error> {
     let file_idx = rand::thread_rng().gen_range(0..NOT_FOUND_FILES.len());
     let chosen = NOT_FOUND_FILES[file_idx];
-    let dir = "static/404";
+    let dir = "templates/404";
     NamedFile::open(Path::new(dir).join(chosen)).await
 }
 
@@ -46,7 +46,7 @@ pub fn health() -> Json<Health> {
 
 #[get("/")]
 pub async fn root() -> Result<NamedFile, std::io::Error> {
-    NamedFile::open("static/index.html").await
+    NamedFile::open("templates/index.html").await
 }
 
 

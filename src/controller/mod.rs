@@ -17,3 +17,5 @@
 */
 
 pub mod home;
+pub mod graphics;
+pub mod demo;

@@ -18,6 +18,8 @@
 
 #[macro_use] extern crate rocket;
 
+use rocket::fs::FileServer;
+
 mod controller;
 mod domain;
 
@@ -30,7 +32,9 @@ pub fn rocket() -> _ {
         under certain conditions; navigate to `/LICENSE' for details.
     ");
     rocket::build()
-        .mount("/", routes![controller::home::health, controller::home::root])
-        .mount("/", rocket::fs::FileServer::from("license"))
         .register("/", catchers![controller::home::not_found, controller::home::internal_error])
+        .mount("/", FileServer::from("static"))
+        .mount("/", routes![controller::home::health, controller::home::root])
+        .mount("/graphics", routes![controller::graphics::root, controller::graphics::ascii])
+        .mount("/demo", routes![controller::demo::cave])
 }
