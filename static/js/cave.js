@@ -118,10 +118,16 @@ async function enter() {
   uniform mat4 view;
   uniform mat4 projection;
 
+  uniform vec3 lightPosition;
+
   out vec3 normal;
+  out vec3 surfaceToLight;
 
   void main() {
+    vec3 surfaceModelPosition = (model * in_position).xyz;
+  
     normal = mat3(model) * in_normal;
+    surfaceToLight = lightPosition - surfaceModelPosition;
     gl_Position = projection * view * model * in_position;
   }
   `;
@@ -130,15 +136,16 @@ async function enter() {
   precision highp float;
 
   in vec3 normal;
+  in vec3 surfaceToLight;
 
   uniform vec4 diffuse;
-  uniform vec3 lightDirection;
+  uniform vec3 lightColor;
 
   out vec4 outColor;
 
   void main () {
-    float light = dot(normalize(lightDirection), normalize(normal));
-    outColor = vec4(diffuse.rgb * light, diffuse.a);
+    float light = dot(normalize(normal), normalize(surfaceToLight));
+    outColor = vec4(diffuse.rgb * light * lightColor, diffuse.a);
   }
   `;
 
@@ -151,8 +158,8 @@ async function enter() {
     const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
     const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
 
-    const cameraTarget = [0, 0, 0];
-    const cameraPosition = [0, 0, 4];
+    const cameraTarget = [0, 0, -1];
+    const cameraPosition = [0, 0, 20];
     const zNear = 0.1;
     const zFar = 50;
 
@@ -160,8 +167,33 @@ async function enter() {
         return deg * Math.PI / 180;
     }
 
+    document.addEventListener('keydown', (event) => {
+        const speed = 0.1;
+        const rotationSpeed = 0.05;
+        switch (event.key) {
+            case "w":
+                cameraPosition[2] -= speed;
+                break;
+            case "s":
+                cameraPosition[2] += speed;
+                break;
+            case "a":
+                cameraPosition[0] -= speed;
+                break;
+            case "d":
+                cameraPosition[0] += speed;
+                break;
+        }
+    })
+
+    const start = 0;
+    const end = 6.28319;
+    const numElements = 10;
+
+    const angles = Array.from({ length: numElements }, (_, index) => start + index * (end - start) / (numElements - 1));
+
+
     function render(time) {
-        time *= 0.001;
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -180,7 +212,8 @@ async function enter() {
         const view = m4.inverse(camera);
 
         const sharedUniforms = {
-            lightDirection: m4.normalize([0, 3, 5]),
+            lightPosition: m4.normalize([0, 0, 0]),
+            lightColor: m4.normalize([0.5, 0.25, 0]),
             view: view,
             projection: projection,
         };
@@ -188,16 +221,24 @@ async function enter() {
         gl.useProgram(meshProgramInfo.program);
 
         twgl.setUniforms(meshProgramInfo, sharedUniforms);
-
         gl.bindVertexArray(vao);
 
-        twgl.setUniforms(meshProgramInfo, {
-            model: m4.yRotation(time),
-            diffuse: [0.5, 0.5, 0.5, 1],
-        });
+        let i = 0;
+        angles.forEach(angle => {
+            angles[i] += 0.001;
+            const radius = 10;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
 
-        twgl.drawBufferInfo(gl, bufferInfo);
-
+            const lookAtMatrix = m4.lookAt([0, 0, 0], [x, 0, z], [0, 1, 0]);
+            const modelMatrix = m4.multiply(m4.translation(x, 0, z), lookAtMatrix);
+            twgl.setUniforms(meshProgramInfo, {
+                model: modelMatrix,
+                diffuse: [0.5, 0.5, 0.5, 1],
+            });
+            twgl.drawBufferInfo(gl, bufferInfo);
+            i++;
+        })
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
