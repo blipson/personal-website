@@ -16,6 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+async function loadTexture(gl, url) {
+
+}
+
 const parseOBJ = (text) => {
     const objPositions = [[0, 0, 0]];
     const objTextureCoords = [[0, 0]];
@@ -94,6 +98,24 @@ const parseOBJ = (text) => {
     };
 }
 
+const rectangleVertices = [
+    1.0, -1.0,  0.0,
+    1.0, 1.0, 0.0,
+    -1.0, 1.0, 0.0,
+    1.0, -1.0,  0.0,
+    -1.0, 1.0, 0.0,
+    -1.0, -1.0, 0.0,
+];
+
+const rectangleNormals = [
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+]
+
 async function enter() {
     document.querySelector("#enter-cave").style.display = "none";
     const canvas = document.querySelector("#cave-canvas");
@@ -113,6 +135,7 @@ async function enter() {
     const vertexShader = `#version 300 es
   in vec4 in_position;
   in vec3 in_normal;
+  in vec2 in_texture;
 
   uniform mat4 model;
   uniform mat4 view;
@@ -122,12 +145,14 @@ async function enter() {
 
   out vec3 normal;
   out vec3 surfaceToLight;
+  out vec2 texcoord;
 
   void main() {
     vec3 surfaceModelPosition = (model * in_position).xyz;
   
     normal = mat3(model) * in_normal;
     surfaceToLight = lightPosition - surfaceModelPosition;
+    texcoord = in_texture;
     gl_Position = projection * view * model * in_position;
   }
   `;
@@ -137,31 +162,69 @@ async function enter() {
 
   in vec3 normal;
   in vec3 surfaceToLight;
+  in vec2 texcoord;
 
   uniform vec4 diffuse;
   uniform vec3 lightColor;
+  uniform sampler2D u_texture;
 
   out vec4 outColor;
 
   void main () {
     float light = dot(normalize(normal), normalize(surfaceToLight));
-    outColor = vec4(diffuse.rgb * light * lightColor, diffuse.a);
+    vec4 textureColor = texture(u_texture, texcoord);
+    vec4 finalColor = textureColor.a > 0.0 ? textureColor : diffuse;
+    outColor = vec4(finalColor.rgb * light * lightColor, finalColor.a);
   }
   `;
 
 
     const meshProgramInfo = twgl.createProgramInfo(gl, [vertexShader, fragmentShader]);
 
+    const rectangleBufferInfo = twgl.createBufferInfoFromArrays(gl, {
+        position: rectangleVertices,
+        normal: rectangleNormals,
+        texture: [
+            1.0, 0.0,
+            1.0, 1.0,
+            0.0, 1.0,
+            1.0, 0.0,
+            0.0, 1.0,
+            0.0, 0.0,
+        ]
+    })
+
+
     const response = await fetch('/obj/head.obj');
     const text = await response.text();
     const data = parseOBJ(text);
     const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
     const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
+    const rectangleVao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, rectangleBufferInfo);
+
+    const emptyTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, emptyTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+
+    const fireTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
+    const image = new Image();
+    image.src = '/textures/flame.png';
+    image.addEventListener('load', function() {
+        gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+    });
 
     const cameraTarget = [0, 0, -1];
     const cameraPosition = [0, 0, 20];
     const zNear = 0.1;
     const zFar = 50;
+
+    const up = [0, 1, 0];
+    let camera = m4.lookAt(cameraPosition, cameraTarget, up);
+    let view = m4.inverse(camera);
 
     function degToRad(deg) {
         return deg * Math.PI / 180;
@@ -173,17 +236,26 @@ async function enter() {
         switch (event.key) {
             case "w":
                 cameraPosition[2] -= speed;
+                cameraTarget[2] -= speed;
+                camera = m4.lookAt(cameraPosition, cameraTarget, up);
                 break;
             case "s":
                 cameraPosition[2] += speed;
+                cameraTarget[2] += speed;
+                camera = m4.lookAt(cameraPosition, cameraTarget, up);
                 break;
             case "a":
                 cameraPosition[0] -= speed;
+                cameraTarget[0] -= speed;
+                camera = m4.lookAt(cameraPosition, cameraTarget, up);
                 break;
             case "d":
                 cameraPosition[0] += speed;
+                cameraTarget[0] += speed;
+                camera = m4.lookAt(cameraPosition, cameraTarget, up);
                 break;
         }
+        view = m4.inverse(camera);
     })
 
     const start = 0;
@@ -207,12 +279,8 @@ async function enter() {
         const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
         const projection = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
-        const up = [0, 1, 0];
-        const camera = m4.lookAt(cameraPosition, cameraTarget, up);
-        const view = m4.inverse(camera);
-
         const sharedUniforms = {
-            lightPosition: m4.normalize([0, 0, 0]),
+            lightPosition: [0, 0, 1],
             lightColor: m4.normalize([0.5, 0.25, 0]),
             view: view,
             projection: projection,
@@ -235,10 +303,24 @@ async function enter() {
             twgl.setUniforms(meshProgramInfo, {
                 model: modelMatrix,
                 diffuse: [0.5, 0.5, 0.5, 1],
+                u_texture: emptyTexture,
             });
             twgl.drawBufferInfo(gl, bufferInfo);
             i++;
         })
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        twgl.setUniforms(meshProgramInfo, {
+            model: m4.identity(),
+            diffuse: [1, 0, 0, 1],
+            u_texture: fireTexture,
+        });
+        gl.bindVertexArray(rectangleVao);
+        twgl.drawBufferInfo(gl, rectangleBufferInfo);
+        gl.disable(gl.BLEND);
+
+
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
