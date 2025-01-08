@@ -195,7 +195,7 @@ const enter = async () => {
 
     twgl.setAttributePrefix("in_");
 
-    const vertexShader = `#version 300 es
+    const headVertexShader = `#version 300 es
   in vec4 in_position;
   in vec3 in_normal;
   in vec2 in_texture;
@@ -208,24 +208,21 @@ const enter = async () => {
 
   out vec3 normal;
   out vec3 surfaceToLight;
-  out vec2 texcoord;
 
   void main() {
     vec3 surfaceModelPosition = (model * in_position).xyz;
   
     normal = mat3(model) * in_normal;
     surfaceToLight = lightPosition - surfaceModelPosition;
-    texcoord = in_texture;
     gl_Position = projection * view * model * in_position;
   }
   `;
 
-    const fragmentShader = `#version 300 es
+    const headFragmentShader = `#version 300 es
   precision highp float;
 
   in vec3 normal;
   in vec3 surfaceToLight;
-  in vec2 texcoord;
 
   uniform vec4 diffuse;
   uniform vec3 lightColor;
@@ -235,14 +232,47 @@ const enter = async () => {
 
   void main () {
     float light = dot(normalize(normal), normalize(surfaceToLight));
-    vec4 textureColor = texture(u_texture, texcoord);
-    vec4 finalColor = textureColor;
-    outColor = vec4(finalColor.rgb * light * lightColor, finalColor.a);
+    outColor = vec4(diffuse.rgb * light * lightColor, diffuse.a);
+  }
+  `;
+
+    const fireVertexShader = `#version 300 es
+  in vec4 in_position;
+  in vec3 in_normal;
+  in vec2 in_texture;
+
+  uniform mat4 model;
+  uniform mat4 view;
+  uniform mat4 projection;
+
+
+  out vec2 texCoord;
+
+  void main() {
+    vec3 surfaceModelPosition = (model * in_position).xyz;
+    texCoord = in_texture;
+    gl_Position = projection * view * model * in_position;
+  }
+  `;
+
+    const fireFragmentShader = `#version 300 es
+  precision highp float;
+
+  in vec2 texCoord;
+
+  uniform vec4 diffuse;
+  uniform sampler2D u_texture;
+
+  out vec4 outColor;
+
+  void main () {
+    outColor = texture(u_texture, texCoord);
   }
   `;
 
 
-    const meshProgramInfo = twgl.createProgramInfo(gl, [vertexShader, fragmentShader]);
+    const headMeshProgramInfo = twgl.createProgramInfo(gl, [headVertexShader, headFragmentShader]);
+    const fireMeshProgramInfo = twgl.createProgramInfo(gl, [fireVertexShader, fireFragmentShader]);
 
     const rectangleBufferInfo = twgl.createBufferInfoFromArrays(gl, {
         position: rectangleVertices,
@@ -262,8 +292,8 @@ const enter = async () => {
     const text = await response.text();
     const data = parseOBJ(text);
     const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
-    const vao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, bufferInfo);
-    const rectangleVao = twgl.createVAOFromBufferInfo(gl, meshProgramInfo, rectangleBufferInfo);
+    const headVao = twgl.createVAOFromBufferInfo(gl, headMeshProgramInfo, bufferInfo);
+    const rectangleVao = twgl.createVAOFromBufferInfo(gl, fireMeshProgramInfo, rectangleBufferInfo);
 
     const greyTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, greyTexture);
@@ -297,10 +327,10 @@ const enter = async () => {
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
         };
 
-        gl.useProgram(meshProgramInfo.program);
+        gl.useProgram(headMeshProgramInfo.program);
 
-        twgl.setUniforms(meshProgramInfo, sharedUniforms);
-        gl.bindVertexArray(vao);
+        twgl.setUniforms(headMeshProgramInfo, sharedUniforms);
+        gl.bindVertexArray(headVao);
 
         caveState.headAngles.forEach((angle, index) => {
             caveState.headAngles[index] += 0.001;
@@ -308,7 +338,7 @@ const enter = async () => {
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
 
-            twgl.setUniforms(meshProgramInfo, {
+            twgl.setUniforms(headMeshProgramInfo, {
                 model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
                 u_texture: greyTexture,
@@ -316,10 +346,12 @@ const enter = async () => {
             twgl.drawBufferInfo(gl, bufferInfo);
         });
 
+        gl.useProgram(fireMeshProgramInfo.program);
+        twgl.setUniforms(fireMeshProgramInfo, sharedUniforms);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        twgl.setUniforms(meshProgramInfo, {
-            model: m4.identity(),
+        twgl.setUniforms(fireMeshProgramInfo, {
+            model: m4.multiply(m4.scaling(0.5, 0.5, 0.5), m4.lookAt(m4.normalize(caveState.cameraPosition), [0, 0, 0], caveState.up)),
             diffuse: [1, 0, 0, 1],
             u_texture: fireTexture,
         });
