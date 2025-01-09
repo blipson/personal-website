@@ -48,9 +48,8 @@ const headOptions = {
 }
 
 const caveState = {
-    // cameraPosition: [0, 0, 0],
-    cameraPosition: [0, 0, 0],
-    cameraTarget: [0, 0, -1],
+    cameraPosition: [0, 2, 15],
+    cameraTarget: [0, 0, 0],
     up: [0, 1, 0],
     headAngles: Array.from(
         {
