@@ -244,13 +244,24 @@ const enter = async () => {
   uniform mat4 model;
   uniform mat4 view;
   uniform mat4 projection;
-
+  uniform float frameTime;
+  uniform vec3 scrollSpeeds;
+  uniform vec3 scales;
 
   out vec2 texCoord;
+  out vec2 texCoord1;
+  out vec2 texCoord2;
+  out vec2 texCoord3;
 
   void main() {
-    vec3 surfaceModelPosition = (model * in_position).xyz;
     texCoord = in_texture;
+    texCoord1 = in_texture * scales.x;
+    texCoord1.y = texCoord1.y - (frameTime * scrollSpeeds.x);
+    texCoord2 = in_texture * scales.y;
+    texCoord2.y = texCoord2.y - (frameTime * scrollSpeeds.y);
+    texCoord3 = in_texture * scales.z;
+    texCoord3.y = texCoord3.y - (frameTime * scrollSpeeds.z);
+
     gl_Position = projection * view * model * in_position;
   }
   `;
@@ -259,14 +270,54 @@ const enter = async () => {
   precision highp float;
 
   in vec2 texCoord;
+  in vec2 texCoord1;
+  in vec2 texCoord2;
+  in vec2 texCoord3;
 
-  uniform vec4 diffuse;
-  uniform sampler2D u_texture;
+  uniform sampler2D fireTexture;
+  uniform sampler2D noiseTexture;
+  uniform sampler2D alphaTexture;
+  uniform vec2 distortion1;
+  uniform vec2 distortion2;
+  uniform vec2 distortion3;
+  uniform float distortionScale;
+  uniform float distortionBias;
 
   out vec4 outColor;
 
   void main () {
-    outColor = texture(u_texture, texCoord);
+    vec4 noise1;
+    vec4 noise2;
+    vec4 noise3;
+    vec4 finalNoise;
+    float perturb;
+    vec2 noiseCoords;
+    vec4 fireColor;
+    vec4 alphaColor;
+    
+    noise1 = texture(noiseTexture, texCoord1);
+    noise2 = texture(noiseTexture, texCoord2);
+    noise3 = texture(noiseTexture, texCoord3);
+    
+    noise1 = (noise1 - 0.5f) * 2.0f;
+    noise2 = (noise2 - 0.5f) * 2.0f;
+    noise3 = (noise3 - 0.5f) * 2.0f;
+    
+    noise1.xy = noise1.xy * distortion1.xy;
+    noise2.xy = noise2.xy * distortion2.xy;
+    noise3.xy = noise3.xy * distortion3.xy;
+    
+    finalNoise = noise1 + noise2 + noise3;
+    
+    perturb = ((texCoord.y) * distortionScale) + distortionBias;
+    noiseCoords.x = (finalNoise.x * perturb) + texCoord.x;
+    noiseCoords.y = (finalNoise.y * perturb) + (1.0f - texCoord.y);
+    
+    fireColor = texture(fireTexture, noiseCoords);
+    alphaColor = texture(alphaTexture, noiseCoords.xy);
+    
+    fireColor.a = alphaColor.r;
+    outColor = fireColor;
   }
   `;
 
@@ -299,18 +350,57 @@ const enter = async () => {
     gl.bindTexture(gl.TEXTURE_2D, greyTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([122.5, 122.5, 122.5, 255]));
 
-    const fireTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+    const flameTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, flameTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
     const image = new Image();
-    image.src = '/textures/flame.png';
+    image.src = '/textures/fire/flame.png';
     image.addEventListener('load', function () {
-        gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+        gl.bindTexture(gl.TEXTURE_2D, flameTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.generateMipmap(gl.TEXTURE_2D);
     });
 
-    const render = () => {
+    const fireTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
+    const fireImage = new Image();
+    fireImage.src = '/textures/fire/fire01.gif';
+    fireImage.addEventListener('load',  () => {
+        gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fireImage);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    });
+
+    const noiseTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
+    const noiseImage = new Image();
+    noiseImage.src = '/textures/fire/noise01.gif';
+    noiseImage.addEventListener('load',  () => {
+        gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, noiseImage);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    });
+
+    const alphaTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, alphaTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
+    const alphaImage = new Image();
+    alphaImage.src = '/textures/fire/alpha01.gif';
+    alphaImage.addEventListener('load',  () => {
+        gl.bindTexture(gl.TEXTURE_2D, alphaTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, alphaImage);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    });
+
+    const render = (frameTime) => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -320,7 +410,7 @@ const enter = async () => {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        const sharedUniforms = {
+        const sharedModelUniforms = {
             lightPosition: [0, 0, 5],
             lightColor: m4.normalize([0.5, 0.25, 0]),
             view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
@@ -329,7 +419,7 @@ const enter = async () => {
 
         gl.useProgram(headMeshProgramInfo.program);
 
-        twgl.setUniforms(headMeshProgramInfo, sharedUniforms);
+        twgl.setUniforms(headMeshProgramInfo, sharedModelUniforms);
         gl.bindVertexArray(headVao);
 
         caveState.headAngles.forEach((angle, index) => {
@@ -347,24 +437,37 @@ const enter = async () => {
         });
 
         gl.useProgram(fireMeshProgramInfo.program);
-        twgl.setUniforms(fireMeshProgramInfo, sharedUniforms);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         twgl.setUniforms(fireMeshProgramInfo, {
-            model: m4.multiply(m4.scaling(0.5, 0.5, 0.5), m4.lookAt(m4.normalize(caveState.cameraPosition), [0, 0, 0], caveState.up)),
-            diffuse: [1, 0, 0, 1],
-            u_texture: fireTexture,
+            model:  m4.lookAt(m4.normalize(caveState.cameraPosition), [0, 0, 0], caveState.up),
+            view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
+            projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
+            frameTime: frameTime,
+            scrollSpeeds: [1.3, 2.1, 2.3],
+            scales: [1.0, 2.0, 3.0],
+            fireTexture: fireTexture,
+            noiseTexture: noiseTexture,
+            alphaTexture: alphaTexture,
+            distortion1: [0.1, 0.2],
+            distortion2: [0.1, 0.3],
+            distortion3: [0.1, 0.1],
+            distortionScale: 0.8,
+            distortionBias: 0.5,
         });
         gl.bindVertexArray(rectangleVao);
         twgl.drawBufferInfo(gl, rectangleBufferInfo);
         gl.disable(gl.BLEND);
 
+        // Note that if you don't lock the FPS to 60 then you will need to determine the
+        // difference of time each frame and update a timer to keep the fire burning at a
+        // consistent speed regardless of the FPS.
         requestAnimationFrame(() => {
-            render()
+            render(frameTime > 1000.0 ? 0.0 : frameTime + 0.01)
         });
     }
 
     requestAnimationFrame(() => {
-        render()
+        render(0.0);
     });
 }

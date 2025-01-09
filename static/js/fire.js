@@ -95,7 +95,7 @@ async function main() {
         return;
     }
 
-    const textureName = "/textures/flame.png"
+    const textureName = "/textures/fire/flame.png"
     const texture = gl.createTexture();
     const image = new Image();
     image.onload = () => {
