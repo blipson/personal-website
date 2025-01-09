@@ -289,20 +289,9 @@ const enter = async () => {
 
   out vec4 outColor;
 
-  float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
-  }
-
   void main () {
-    float lightJitter = 0.1;
     vec2 fragCoord = gl_FragCoord.xy;
-    
-    float jitterX = random(fragCoord + vec2(0.0, 1.0)) * lightJitter;
-    float jitterY = random(fragCoord + vec2(1.0, 0.0)) * lightJitter;
-    float jitterZ = random(fragCoord + vec2(1.0, 1.0)) * lightJitter;
-    vec3 jitteredLightDirection = normalize(surfaceToLight + vec3(jitterX, jitterY, jitterZ));
-  
-    float light = max(dot(normalize(normal), normalize(jitteredLightDirection)), 0.0);
+    float light = max(dot(normalize(normal), normalize(surfaceToLight)), 0.0);
     outColor = vec4(diffuse.rgb * light * lightColor * lightIntensity, diffuse.a);
   }
   `;
