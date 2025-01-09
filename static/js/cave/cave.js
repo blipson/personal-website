@@ -47,7 +47,7 @@ const headOptions = {
 }
 
 const caveState = {
-    cameraPosition: [0, 0, 20],
+    cameraPosition: [0, 2, 15],
     cameraTarget: [0, 0, -1],
     up: [0, 1, 0],
     headAngles: Array.from(
@@ -65,28 +65,52 @@ const cameraOptions = {
 }
 
 const moveCameraForward = () => {
-    // todo: cameraPosition = view * speed
+    const viewDir = m4.normalize([
+        caveState.cameraTarget[0] - caveState.cameraPosition[0],
+        caveState.cameraTarget[1] - caveState.cameraPosition[1],
+        caveState.cameraTarget[2] - caveState.cameraPosition[2],
+    ]);
 
-    caveState.cameraPosition[2] -= cameraOptions.movementSpeed;
-    caveState.cameraTarget[2] -= cameraOptions.movementSpeed;
+    const movement = m4.scale(viewDir, cameraOptions.movementSpeed);
+    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
 }
 
 const moveCameraBackward = () => {
-    // todo: cameraPosition = view * -speed
-    caveState.cameraPosition[2] += cameraOptions.movementSpeed;
-    caveState.cameraTarget[2] += cameraOptions.movementSpeed;
+    const reverseDir = m4.normalize([
+        (caveState.cameraTarget[0] - caveState.cameraPosition[0]) * -1,
+        (caveState.cameraTarget[1] - caveState.cameraPosition[1]) * -1,
+        (caveState.cameraTarget[2] - caveState.cameraPosition[2]) * -1,
+    ]);
+
+    const movement = m4.scale(reverseDir, cameraOptions.movementSpeed);
+    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
+
 }
 
 const moveCameraLeft = () => {
-    // todo: cameraPosition = u * -speed
-    caveState.cameraPosition[0] -= cameraOptions.movementSpeed;
-    caveState.cameraTarget[0] -= cameraOptions.movementSpeed;
+    const viewDir = m4.normalize([
+        caveState.cameraTarget[0] - caveState.cameraPosition[0],
+        caveState.cameraTarget[1] - caveState.cameraPosition[1],
+        caveState.cameraTarget[2] - caveState.cameraPosition[2],
+    ]);
+
+    const movement = m4.scale(m4.normalize(m4.cross(viewDir, caveState.up)), -cameraOptions.movementSpeed);
+    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
 }
 
 const moveCameraRight = () => {
-    // todo: cameraPosition = u * speed
-    caveState.cameraPosition[0] += cameraOptions.movementSpeed;
-    caveState.cameraTarget[0] += cameraOptions.movementSpeed;
+    const viewDir = m4.normalize([
+        caveState.cameraTarget[0] - caveState.cameraPosition[0],
+        caveState.cameraTarget[1] - caveState.cameraPosition[1],
+        caveState.cameraTarget[2] - caveState.cameraPosition[2],
+    ]);
+
+    const movement = m4.scale(m4.normalize(m4.cross(viewDir, caveState.up)), cameraOptions.movementSpeed);
+    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
 }
 
 const translateCameraToOrigin = (originalCameraPosition) => {
@@ -103,7 +127,12 @@ const translateCameraFromOrigin = (originalCameraPosition) => {
 
 const rotateCameraUp = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const pitchMatrixUp = m4.xRotation(cameraOptions.rotationSpeed);
+    const viewDir = m4.normalize([
+        caveState.cameraTarget[0] - caveState.cameraPosition[0],
+        caveState.cameraTarget[1] - caveState.cameraPosition[1],
+        caveState.cameraTarget[2] - caveState.cameraPosition[2],
+    ]);
+    const pitchMatrixUp = m4.axisRotation(m4.normalize(m4.cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
     caveState.cameraPosition = m4.transformPoint(pitchMatrixUp, caveState.cameraPosition);
     caveState.cameraTarget = m4.transformPoint(pitchMatrixUp, caveState.cameraTarget);
     caveState.up = m4.transformDirection(pitchMatrixUp, caveState.up);
@@ -112,7 +141,12 @@ const rotateCameraUp = (originalCameraPosition) => {
 
 const rotateCameraDown = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const pitchMatrixDown = m4.xRotation(-cameraOptions.rotationSpeed);
+    const viewDir = m4.normalize([
+        caveState.cameraTarget[0] - caveState.cameraPosition[0],
+        caveState.cameraTarget[1] - caveState.cameraPosition[1],
+        caveState.cameraTarget[2] - caveState.cameraPosition[2],
+    ]);
+    const pitchMatrixDown = m4.axisRotation(m4.normalize(m4.cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
     caveState.cameraPosition = m4.transformPoint(pitchMatrixDown, caveState.cameraPosition);
     caveState.cameraTarget = m4.transformPoint(pitchMatrixDown, caveState.cameraTarget);
     caveState.up = m4.transformDirection(pitchMatrixDown, caveState.up);
@@ -140,7 +174,7 @@ document.addEventListener('keydown', (event) => {
     switch (event.key) {
         case "r":
             event.preventDefault();
-            caveState.cameraPosition = [0, 0, 20];
+            caveState.cameraPosition = [0, 2, 15];
             caveState.cameraTarget = [0, 0, 0];
             caveState.up = [0, 1, 0];
             break;
@@ -179,6 +213,41 @@ document.addEventListener('keydown', (event) => {
     }
 })
 
+const loadImage = (src) => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+const randomFloat = (start,end) => {
+    if (!end) {
+        return randomFloat(0, start);
+    } else {
+        return Math.random() * (end - start) + start;
+    }
+}
+
+const generateRandomNoiseTexture = (gl, width, height) => {
+    const noiseData = new Uint8Array(width * height * 4);
+    for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = Math.random() * 255;  // Random value for each channel (RGBA)
+    }
+
+    const noiseTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseData);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    return noiseTexture;
+}
+
 const enter = async () => {
     document.querySelector("#enter-cave").style.display = "none";
     const canvas = document.querySelector("#cave-canvas");
@@ -195,7 +264,7 @@ const enter = async () => {
 
     twgl.setAttributePrefix("in_");
 
-    const headVertexShader = `#version 300 es
+    const objectVertexShader = `#version 300 es
   in vec4 in_position;
   in vec3 in_normal;
   in vec2 in_texture;
@@ -208,31 +277,35 @@ const enter = async () => {
 
   out vec3 normal;
   out vec3 surfaceToLight;
+  out vec2 texCoord;
 
   void main() {
     vec3 surfaceModelPosition = (model * in_position).xyz;
   
     normal = mat3(model) * in_normal;
     surfaceToLight = lightPosition - surfaceModelPosition;
+    texCoord = in_texture;
     gl_Position = projection * view * model * in_position;
   }
   `;
 
-    const headFragmentShader = `#version 300 es
+    const objectFragmentShader = `#version 300 es
   precision highp float;
 
   in vec3 normal;
   in vec3 surfaceToLight;
+  in vec2 texCoord;
 
   uniform vec4 diffuse;
   uniform vec3 lightColor;
-  uniform sampler2D u_texture;
+  uniform sampler2D fireNoiseTexture;
 
   out vec4 outColor;
 
   void main () {
     float light = dot(normalize(normal), normalize(surfaceToLight));
-    outColor = vec4(diffuse.rgb * light * lightColor, diffuse.a);
+    vec4 fireNoiseColor = texture(fireNoiseTexture, texCoord);
+    outColor = vec4(diffuse.rgb * light * lightColor * fireNoiseColor.rgb, diffuse.a);
   }
   `;
 
@@ -322,7 +395,7 @@ const enter = async () => {
   `;
 
 
-    const headMeshProgramInfo = twgl.createProgramInfo(gl, [headVertexShader, headFragmentShader]);
+    const objectMeshProgramInfo = twgl.createProgramInfo(gl, [objectVertexShader, objectFragmentShader]);
     const fireMeshProgramInfo = twgl.createProgramInfo(gl, [fireVertexShader, fireFragmentShader]);
 
     const rectangleBufferInfo = twgl.createBufferInfoFromArrays(gl, {
@@ -339,68 +412,55 @@ const enter = async () => {
     })
 
 
-    const response = await fetch('/obj/head.obj');
-    const text = await response.text();
-    const data = parseOBJ(text);
-    const bufferInfo = twgl.createBufferInfoFromArrays(gl, data);
-    const headVao = twgl.createVAOFromBufferInfo(gl, headMeshProgramInfo, bufferInfo);
+    const headResponse = await fetch('/obj/head.obj');
+    const headText = await headResponse.text();
+    const headData = parseOBJ(headText);
+    const headBufferInfo = twgl.createBufferInfoFromArrays(gl, headData);
+    const headVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, headBufferInfo);
+
+    const firePitResponse = await fetch('/obj/fire_pit.obj');
+    const firePitText = await firePitResponse.text();
+    const firePitData = parseOBJ(firePitText);
+    const firePitBufferInfo = twgl.createBufferInfoFromArrays(gl, firePitData);
+    const firePitVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, firePitBufferInfo);
+
     const rectangleVao = twgl.createVAOFromBufferInfo(gl, fireMeshProgramInfo, rectangleBufferInfo);
-
-    const greyTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, greyTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([122.5, 122.5, 122.5, 255]));
-
-    const flameTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, flameTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
-    const image = new Image();
-    image.src = '/textures/fire/flame.png';
-    image.addEventListener('load', function () {
-        gl.bindTexture(gl.TEXTURE_2D, flameTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        gl.generateMipmap(gl.TEXTURE_2D);
-    });
 
     const fireTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, fireTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
-    const fireImage = new Image();
-    fireImage.src = '/textures/fire/fire01.gif';
-    fireImage.addEventListener('load',  () => {
-        gl.bindTexture(gl.TEXTURE_2D, fireTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fireImage);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    });
+    const fireImage = await loadImage('/textures/fire/fire01.gif');
+    gl.bindTexture(gl.TEXTURE_2D, fireTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fireImage);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
 
     const noiseTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
-    const noiseImage = new Image();
-    noiseImage.src = '/textures/fire/noise01.gif';
-    noiseImage.addEventListener('load',  () => {
-        gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, noiseImage);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    });
+    const noiseImage = await loadImage('/textures/fire/noise01.gif');
+    gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, noiseImage);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_R, gl.REPEAT);
 
     const alphaTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, alphaTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
-    const alphaImage = new Image();
-    alphaImage.src = '/textures/fire/alpha01.gif';
-    alphaImage.addEventListener('load',  () => {
-        gl.bindTexture(gl.TEXTURE_2D, alphaTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, alphaImage);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    });
+    const alphaImage = await loadImage('/textures/fire/alpha01.gif');
 
-    const render = (frameTime) => {
+    gl.bindTexture(gl.TEXTURE_2D, alphaTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, alphaImage);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+
+    const render = (frameTime, previousNoiseTexture) => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -410,16 +470,31 @@ const enter = async () => {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+        if (previousNoiseTexture) {
+            gl.deleteTexture(previousNoiseTexture);
+        }
+
+        const nextNoiseTexture = generateRandomNoiseTexture(gl, 256, 256);
+
         const sharedModelUniforms = {
-            lightPosition: [0, 0, 5],
-            lightColor: m4.normalize([0.5, 0.25, 0]),
+            lightPosition: [0, 0, 0],
+            lightColor: m4.normalize([randomFloat(0.5, 0.5), randomFloat(0.25, 0.25), 0]),
             view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
+            fireNoiseTexture: nextNoiseTexture,
         };
 
-        gl.useProgram(headMeshProgramInfo.program);
+        gl.useProgram(objectMeshProgramInfo.program);
 
-        twgl.setUniforms(headMeshProgramInfo, sharedModelUniforms);
+        twgl.setUniforms(objectMeshProgramInfo, sharedModelUniforms);
+
+        gl.bindVertexArray(firePitVao);
+        twgl.setUniforms(objectMeshProgramInfo, {
+            model: m4.multiply(m4.scaling(0.4, 0.4, 0.4), m4.multiply(m4.translation(0, -7, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
+            diffuse: [0.5, 0.5, 0.5, 1],
+        });
+        twgl.drawBufferInfo(gl, firePitBufferInfo);
+
         gl.bindVertexArray(headVao);
 
         caveState.headAngles.forEach((angle, index) => {
@@ -428,12 +503,11 @@ const enter = async () => {
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
 
-            twgl.setUniforms(headMeshProgramInfo, {
+            twgl.setUniforms(objectMeshProgramInfo, {
                 model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
-                u_texture: greyTexture,
             });
-            twgl.drawBufferInfo(gl, bufferInfo);
+            twgl.drawBufferInfo(gl, headBufferInfo);
         });
 
         gl.useProgram(fireMeshProgramInfo.program);
@@ -463,11 +537,11 @@ const enter = async () => {
         // difference of time each frame and update a timer to keep the fire burning at a
         // consistent speed regardless of the FPS.
         requestAnimationFrame(() => {
-            render(frameTime > 1000.0 ? 0.0 : frameTime + 0.01)
+            render(frameTime > 1000.0 ? 0.0 : frameTime + 0.01, nextNoiseTexture)
         });
     }
 
     requestAnimationFrame(() => {
-        render(0.0);
+        render(0.0, null);
     });
 }
