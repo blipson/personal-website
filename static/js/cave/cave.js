@@ -230,24 +230,6 @@ const randomFloat = (start,end) => {
     }
 }
 
-const generateRandomNoiseTexture = (gl, width, height) => {
-    const noiseData = new Uint8Array(width * height * 4);
-    for (let i = 0; i < noiseData.length; i++) {
-        noiseData[i] = Math.random() * 255;  // Random value for each channel (RGBA)
-    }
-
-    const noiseTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseData);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    return noiseTexture;
-}
-
 const enter = async () => {
     document.querySelector("#enter-cave").style.display = "none";
     const canvas = document.querySelector("#cave-canvas");
@@ -255,7 +237,12 @@ const enter = async () => {
     canvas.height = window.innerHeight;
     canvas.style.display = "block";
     canvas.fillStyle = "black";
-    new Audio('/mp3/cave.mp3').play()
+    const caveAudio = new Audio('/mp3/cave.mp3');
+    caveAudio.volume = 0.25;
+    const firePitAudio = new Audio('/mp3/firepit.mp3');
+    firePitAudio.volume = 1.0;
+    caveAudio.play();
+    firePitAudio.play();
     const gl = canvas.getContext("webgl2");
     if (!gl) {
         return;
@@ -298,14 +285,25 @@ const enter = async () => {
 
   uniform vec4 diffuse;
   uniform vec3 lightColor;
-  uniform sampler2D fireNoiseTexture;
+  uniform float lightIntensity;
 
   out vec4 outColor;
 
+  float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+  }
+
   void main () {
-    float light = dot(normalize(normal), normalize(surfaceToLight));
-    vec4 fireNoiseColor = texture(fireNoiseTexture, texCoord);
-    outColor = vec4(diffuse.rgb * light * lightColor * fireNoiseColor.rgb, diffuse.a);
+    float lightJitter = 0.1;
+    vec2 fragCoord = gl_FragCoord.xy;
+    
+    float jitterX = random(fragCoord + vec2(0.0, 1.0)) * lightJitter;
+    float jitterY = random(fragCoord + vec2(1.0, 0.0)) * lightJitter;
+    float jitterZ = random(fragCoord + vec2(1.0, 1.0)) * lightJitter;
+    vec3 jitteredLightDirection = normalize(surfaceToLight + vec3(jitterX, jitterY, jitterZ));
+  
+    float light = max(dot(normalize(normal), normalize(jitteredLightDirection)), 0.0);
+    outColor = vec4(diffuse.rgb * light * lightColor * lightIntensity, diffuse.a);
   }
   `;
 
@@ -460,7 +458,7 @@ const enter = async () => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
 
-    const render = (frameTime, previousNoiseTexture) => {
+    const render = (frameTime) => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -470,18 +468,11 @@ const enter = async () => {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        if (previousNoiseTexture) {
-            gl.deleteTexture(previousNoiseTexture);
-        }
-
-        const nextNoiseTexture = generateRandomNoiseTexture(gl, 256, 256);
-
         const sharedModelUniforms = {
             lightPosition: [0, 0, 0],
-            lightColor: m4.normalize([randomFloat(0.5, 0.5), randomFloat(0.25, 0.25), 0]),
+            lightColor: m4.normalize([0.5, 0.25, 0]),
             view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
-            fireNoiseTexture: nextNoiseTexture,
         };
 
         gl.useProgram(objectMeshProgramInfo.program);
@@ -506,6 +497,7 @@ const enter = async () => {
             twgl.setUniforms(objectMeshProgramInfo, {
                 model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
+                lightIntensity: randomFloat(0.52, 0.6),
             });
             twgl.drawBufferInfo(gl, headBufferInfo);
         });
@@ -537,11 +529,11 @@ const enter = async () => {
         // difference of time each frame and update a timer to keep the fire burning at a
         // consistent speed regardless of the FPS.
         requestAnimationFrame(() => {
-            render(frameTime > 1000.0 ? 0.0 : frameTime + 0.01, nextNoiseTexture)
+            render(frameTime > 1000.0 ? 0.0 : frameTime + 0.01)
         });
     }
 
     requestAnimationFrame(() => {
-        render(0.0, null);
+        render(0.0);
     });
 }
