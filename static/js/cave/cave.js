@@ -472,6 +472,7 @@ const enter = async () => {
         twgl.setUniforms(objectMeshProgramInfo, {
             model: m4.multiply(m4.scaling(0.4, 0.4, 0.4), m4.multiply(m4.translation(0, -7, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
             diffuse: [0.5, 0.5, 0.5, 1],
+            lightIntensity: 1.0,
         });
         twgl.drawBufferInfo(gl, firePitBufferInfo);
 
@@ -486,7 +487,7 @@ const enter = async () => {
             twgl.setUniforms(objectMeshProgramInfo, {
                 model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
-                lightIntensity: randomFloat(0.52, 0.6),
+                lightIntensity: randomFloat(0.85, 0.9),
             });
             twgl.drawBufferInfo(gl, headBufferInfo);
         });
