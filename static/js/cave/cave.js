@@ -18,12 +18,12 @@
 
 
 const rectangleVertices = [
-    1.0, -1.0, 0.0,
-    1.0, 1.0, 0.0,
-    -1.0, 1.0, 0.0,
-    1.0, -1.0, 0.0,
-    -1.0, 1.0, 0.0,
-    -1.0, -1.0, 0.0,
+    1.0, -1.0, -1.0,
+    1.0, 1.0, -1.0,
+    -1.0, 1.0, -1.0,
+    1.0, -1.0, -1.0,
+    -1.0, 1.0, -1.0,
+    -1.0, -1.0, -1.0,
 ];
 
 const rectangleNormals = [
@@ -44,10 +44,12 @@ const headOptions = {
     start: 0,
     end: degreesToRadians(360),
     numHeads: 10,
+    radius: 5
 }
 
 const caveState = {
-    cameraPosition: [0, 2, 15],
+    // cameraPosition: [0, 0, 0],
+    cameraPosition: [0, 0, 0],
     cameraTarget: [0, 0, -1],
     up: [0, 1, 0],
     headAngles: Array.from(
@@ -407,6 +409,7 @@ const enter = async () => {
 
     const firePitResponse = await fetch('/obj/fire_pit.obj');
     const firePitText = await firePitResponse.text();
+    console.log('firepit');
     const firePitData = parseOBJ(firePitText);
     const firePitBufferInfo = twgl.createBufferInfoFromArrays(gl, firePitData);
     const firePitVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, firePitBufferInfo);
@@ -459,8 +462,7 @@ const enter = async () => {
 
         const sharedModelUniforms = {
             lightPosition: [0, 0, 0],
-            lightColor: m4.normalize([0.5, 0.25, 0]),
-            view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
+            view:  m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
         };
 
@@ -470,8 +472,9 @@ const enter = async () => {
 
         gl.bindVertexArray(firePitVao);
         twgl.setUniforms(objectMeshProgramInfo, {
-            model: m4.multiply(m4.scaling(0.4, 0.4, 0.4), m4.multiply(m4.translation(0, -7, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
-            diffuse: [0.5, 0.5, 0.5, 1],
+            model: m4.multiply(m4.scaling(0.5, 0.5, 0.5), m4.multiply(m4.translation(0, -6, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
+            diffuse: [0.25, 0.25, 0.25, 1],
+            lightColor: m4.normalize([0.75, 0.4, 0]),
             lightIntensity: 1.0,
         });
         twgl.drawBufferInfo(gl, firePitBufferInfo);
@@ -480,14 +483,15 @@ const enter = async () => {
 
         caveState.headAngles.forEach((angle, index) => {
             caveState.headAngles[index] += 0.001;
-            const radius = 10;
+            const radius = headOptions.radius;
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
 
             twgl.setUniforms(objectMeshProgramInfo, {
                 model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
-                lightIntensity: randomFloat(0.85, 0.9),
+                lightColor: m4.normalize([0.5, 0.25, 0]),
+                lightIntensity: randomFloat(0.8, 0.9),
             });
             twgl.drawBufferInfo(gl, headBufferInfo);
         });
@@ -496,7 +500,7 @@ const enter = async () => {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         twgl.setUniforms(fireMeshProgramInfo, {
-            model:  m4.lookAt(m4.normalize(caveState.cameraPosition), [0, 0, 0], caveState.up),
+            model:  m4.multiply(m4.scaling(2, 2, 2), m4.lookAt(m4.normalize(caveState.cameraPosition), [0, 0, 0], caveState.up)),
             view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
             frameTime: frameTime,

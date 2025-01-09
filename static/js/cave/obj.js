@@ -68,7 +68,35 @@ const parseOBJ = (text) => {
             return;
         }
         handler(parts, unparsedArgs);
-    })
+    });
+
+    const sum = [0, 0, 0];
+    const vertexCount = objPositions.length - 1; // Exclude the dummy starting position
+
+    objPositions.slice(1).forEach((position) => {
+        sum[0] += position[0];
+        sum[1] += position[1];
+        sum[2] += position[2];
+    });
+
+    const centroid = [
+        sum[0] / vertexCount,
+        sum[1] / vertexCount,
+        sum[2] / vertexCount,
+    ];
+
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    objPositions.slice(1).forEach((position) => {
+        const y = position[1];
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+    });
+
+    const height = maxY - minY;
+
+    console.log("height is " + height);
 
     return {
         position: webglVertexData[0],
