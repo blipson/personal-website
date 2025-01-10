@@ -464,7 +464,7 @@ const enter = async () => {
         fpsSum += fps;
         frameCount += 1;
         const avgFps = fpsSum / frameCount;
-        fpsElem.textContent = 'FPS: ' + Math.floor(avgFps).toString();
+        // fpsElem.textContent = 'FPS: ' + Math.floor(avgFps).toString();
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
