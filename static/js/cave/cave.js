@@ -231,6 +231,11 @@ const randomFloat = (start,end) => {
     }
 }
 
+const time = () => {
+    const d = new Date();
+    return d.getTime();
+}
+
 const enter = async () => {
     document.querySelector("#enter-cave").style.display = "none";
     const canvas = document.querySelector("#cave-canvas");
@@ -408,7 +413,6 @@ const enter = async () => {
 
     const firePitResponse = await fetch('/obj/fire_pit.obj');
     const firePitText = await firePitResponse.text();
-    console.log('firepit');
     const firePitData = parseOBJ(firePitText);
     const firePitBufferInfo = twgl.createBufferInfoFromArrays(gl, firePitData);
     const firePitVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, firePitBufferInfo);
@@ -449,7 +453,19 @@ const enter = async () => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
 
-    const render = (frameTime) => {
+    let fpsSum = 0.0;
+    let frameCount = 0;
+
+    const render = (frameTime, lastTime) => {
+        const currentTime = time();
+        const deltaTime = (currentTime - lastTime) / 1000;
+        const fpsElem = document.querySelector("#fps");
+        const fps = deltaTime > 0 ? (1 / deltaTime) : 0;
+        fpsSum += fps;
+        frameCount += 1;
+        const avgFps = fpsSum / frameCount;
+        fpsElem.textContent = 'FPS: ' + Math.floor(avgFps).toString();
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -471,7 +487,7 @@ const enter = async () => {
 
         gl.bindVertexArray(firePitVao);
         twgl.setUniforms(objectMeshProgramInfo, {
-            model: m4.multiply(m4.scaling(0.5, 0.5, 0.5), m4.multiply(m4.translation(0, -6, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
+            model: m4.multiply(m4.scaling(0.55, 0.55, 0.55), m4.multiply(m4.translation(0, -6, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
             diffuse: [0.25, 0.25, 0.25, 1],
             lightColor: m4.normalize([0.75, 0.4, 0]),
             lightIntensity: 1.0,
@@ -511,22 +527,19 @@ const enter = async () => {
             distortion1: [0.1, 0.2],
             distortion2: [0.1, 0.3],
             distortion3: [0.1, 0.1],
-            distortionScale: 0.8,
+            distortionScale: 0.3,
             distortionBias: 0.5,
         });
         gl.bindVertexArray(rectangleVao);
         twgl.drawBufferInfo(gl, rectangleBufferInfo);
         gl.disable(gl.BLEND);
 
-        // Note that if you don't lock the FPS to 60 then you will need to determine the
-        // difference of time each frame and update a timer to keep the fire burning at a
-        // consistent speed regardless of the FPS.
         requestAnimationFrame(() => {
-            render(frameTime > 1000.0 ? 0.0 : frameTime + 0.01)
+            render(frameTime > 1000.0 ? 0.0 : frameTime + deltaTime, currentTime)
         });
     }
 
     requestAnimationFrame(() => {
-        render(0.0);
+        render(0.0, time());
     });
 }

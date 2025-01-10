@@ -15,7 +15,10 @@
         <p>Enter at your own risk, for those who shackle themselves may never be set free.</p>
         <button onclick="enter()">Enter</button>
     </div>
-    <canvas width="100%" height="100%" id="cave-canvas" style="display: none;"></canvas>
+    <div style="position: relative;">
+        <canvas width="100%" height="100%" id="cave-canvas" style="display: none;"></canvas>
+        <p id="fps" style="position: absolute; top: 10px; left: 10px; color: white; font-size: 20px; margin: 0; pointer-events: none;"></p>
+    </div>
     <script src="https://webgl2fundamentals.org/webgl/resources/twgl-full.min.js"></script>
     <script src="https://webgl2fundamentals.org/webgl/resources/m4.js"></script>
     <script src="/js/cave/obj.js"></script>
