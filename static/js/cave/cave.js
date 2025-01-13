@@ -247,13 +247,14 @@ const enter = async () => {
     caveAudio.volume = 0.25;
     const firePitAudio = new Audio('/mp3/firepit.mp3');
     firePitAudio.volume = 1.0;
-    // caveAudio.play();
-    // firePitAudio.play();
     const gl = canvas.getContext("webgl2");
     if (!gl) {
         return;
     }
     gl.clearColor(0, 0, 0, 1);
+
+    caveAudio.play();
+    firePitAudio.play();
 
     twgl.setAttributePrefix("in_");
 
