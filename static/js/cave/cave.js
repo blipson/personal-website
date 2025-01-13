@@ -247,8 +247,8 @@ const enter = async () => {
     caveAudio.volume = 0.25;
     const firePitAudio = new Audio('/mp3/firepit.mp3');
     firePitAudio.volume = 1.0;
-    caveAudio.play();
-    firePitAudio.play();
+    // caveAudio.play();
+    // firePitAudio.play();
     const gl = canvas.getContext("webgl2");
     if (!gl) {
         return;
@@ -407,13 +407,13 @@ const enter = async () => {
 
     const headResponse = await fetch('/obj/head.obj');
     const headText = await headResponse.text();
-    const headData = parseOBJ(headText);
+    const headData = parseObj(headText);
     const headBufferInfo = twgl.createBufferInfoFromArrays(gl, headData);
     const headVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, headBufferInfo);
 
     const firePitResponse = await fetch('/obj/fire_pit.obj');
     const firePitText = await firePitResponse.text();
-    const firePitData = parseOBJ(firePitText);
+    const firePitData = parseObj(firePitText);
     const firePitBufferInfo = twgl.createBufferInfoFromArrays(gl, firePitData);
     const firePitVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, firePitBufferInfo);
 
