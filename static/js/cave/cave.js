@@ -66,52 +66,52 @@ const cameraOptions = {
 }
 
 const moveCameraForward = () => {
-    const viewDir = m4.normalize([
+    const viewDir = normalizeVector([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
 
-    const movement = m4.scale(viewDir, cameraOptions.movementSpeed);
-    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
-    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
+    const movement = scale(viewDir, cameraOptions.movementSpeed);
+    caveState.cameraPosition = addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = addVectors(caveState.cameraTarget, movement);
 }
 
 const moveCameraBackward = () => {
-    const reverseDir = m4.normalize([
+    const reverseDir = normalizeVector([
         (caveState.cameraTarget[0] - caveState.cameraPosition[0]) * -1,
         (caveState.cameraTarget[1] - caveState.cameraPosition[1]) * -1,
         (caveState.cameraTarget[2] - caveState.cameraPosition[2]) * -1,
     ]);
 
-    const movement = m4.scale(reverseDir, cameraOptions.movementSpeed);
-    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
-    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
+    const movement = scale(reverseDir, cameraOptions.movementSpeed);
+    caveState.cameraPosition = addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = addVectors(caveState.cameraTarget, movement);
 
 }
 
 const moveCameraLeft = () => {
-    const viewDir = m4.normalize([
+    const viewDir = normalizeVector([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
 
-    const movement = m4.scale(m4.normalize(m4.cross(viewDir, caveState.up)), -cameraOptions.movementSpeed);
-    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
-    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
+    const movement = scale(normalizeVector(cross(viewDir, caveState.up)), -cameraOptions.movementSpeed);
+    caveState.cameraPosition = addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = addVectors(caveState.cameraTarget, movement);
 }
 
 const moveCameraRight = () => {
-    const viewDir = m4.normalize([
+    const viewDir = normalizeVector([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
 
-    const movement = m4.scale(m4.normalize(m4.cross(viewDir, caveState.up)), cameraOptions.movementSpeed);
-    caveState.cameraPosition = m4.addVectors(caveState.cameraPosition, movement);
-    caveState.cameraTarget = m4.addVectors(caveState.cameraTarget, movement);
+    const movement = scale(normalizeVector(cross(viewDir, caveState.up)), cameraOptions.movementSpeed);
+    caveState.cameraPosition = addVectors(caveState.cameraPosition, movement);
+    caveState.cameraTarget = addVectors(caveState.cameraTarget, movement);
 }
 
 const translateCameraToOrigin = (originalCameraPosition) => {
@@ -128,12 +128,12 @@ const translateCameraFromOrigin = (originalCameraPosition) => {
 
 const rotateCameraUp = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const viewDir = m4.normalize([
+    const viewDir = normalizeVector([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
-    const pitchMatrixUp = m4.axisRotation(m4.normalize(m4.cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
+    const pitchMatrixUp = m4.axisRotation(normalizeVector(cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
     caveState.cameraPosition = m4.transformPoint(pitchMatrixUp, caveState.cameraPosition);
     caveState.cameraTarget = m4.transformPoint(pitchMatrixUp, caveState.cameraTarget);
     caveState.up = m4.transformDirection(pitchMatrixUp, caveState.up);
@@ -142,12 +142,12 @@ const rotateCameraUp = (originalCameraPosition) => {
 
 const rotateCameraDown = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const viewDir = m4.normalize([
+    const viewDir = normalizeVector([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
-    const pitchMatrixDown = m4.axisRotation(m4.normalize(m4.cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
+    const pitchMatrixDown = m4.axisRotation(normalizeVector(cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
     caveState.cameraPosition = m4.transformPoint(pitchMatrixDown, caveState.cameraPosition);
     caveState.cameraTarget = m4.transformPoint(pitchMatrixDown, caveState.cameraTarget);
     caveState.up = m4.transformDirection(pitchMatrixDown, caveState.up);
@@ -464,7 +464,7 @@ const enter = async () => {
         const fps = deltaTime > 0 ? (1 / deltaTime) : 0;
         fpsSum += fps;
         frameCount += 1;
-        const avgFps = fpsSum / frameCount;
+        // const avgFps = fpsSum / frameCount;
         // fpsElem.textContent = 'FPS: ' + Math.floor(avgFps).toString();
 
         canvas.width = window.innerWidth;
@@ -490,7 +490,7 @@ const enter = async () => {
         twgl.setUniforms(objectMeshProgramInfo, {
             model: m4.multiply(m4.scaling(0.55, 0.55, 0.55), m4.multiply(m4.translation(0, -6, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
             diffuse: [0.25, 0.25, 0.25, 1],
-            lightColor: m4.normalize([0.75, 0.4, 0]),
+            lightColor: normalizeVector([0.75, 0.4, 0]),
             lightIntensity: 1.0,
         });
         twgl.drawBufferInfo(gl, firePitBufferInfo);
@@ -506,7 +506,7 @@ const enter = async () => {
             twgl.setUniforms(objectMeshProgramInfo, {
                 model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
-                lightColor: m4.normalize([0.5, 0.25, 0]),
+                lightColor: normalizeVector([0.5, 0.25, 0]),
                 lightIntensity: randomFloat(0.8, 0.9),
             });
             twgl.drawBufferInfo(gl, headBufferInfo);
@@ -516,7 +516,7 @@ const enter = async () => {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         twgl.setUniforms(fireMeshProgramInfo, {
-            model:  m4.multiply(m4.scaling(2, 2, 2), m4.lookAt(m4.normalize(caveState.cameraPosition), [0, 0, 0], caveState.up)),
+            model:  m4.multiply(m4.scaling(2, 2, 2), m4.lookAt(normalizeVector(caveState.cameraPosition), [0, 0, 0], caveState.up)),
             view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
             frameTime: frameTime,
