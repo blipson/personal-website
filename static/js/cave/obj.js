@@ -1,43 +1,3 @@
-const getLines = (text) => {
-    return text.split('\n');
-}
-
-const trimmedStartsWith = (s, prefix) => {
-    return s.trim().startsWith(prefix);
-}
-
-const getTail = (s) => {
-    return s.trim().split(/\s+/).slice(1)
-}
-
-const getTailAsFloats = (s) => {
-    return getTail(s).map(parseFloat);
-}
-
-const getVertexPositions = (lines) => {
-    return lines
-        .filter(line => trimmedStartsWith(line, 'v '))
-        .map(vertexLine => getTailAsFloats(vertexLine));
-}
-
-const getTextureCoordinates = (lines) => {
-    return lines
-        .filter(line => trimmedStartsWith(line, 'vt '))
-        .map(textureCoordinateLine => getTailAsFloats(textureCoordinateLine));
-}
-
-const getNormals = (lines) => {
-    return lines
-        .filter(line => trimmedStartsWith(line, 'vn '))
-        .map(normalLine => getTailAsFloats(normalLine));
-}
-
-const getFaces = (lines) => {
-    return lines
-        .filter(line => trimmedStartsWith(line, 'f '))
-        .map(faceLine => getTail(faceLine))
-}
-
 const getReferenceIndexes = (vertex) => {
     return vertex.split("/").map(reference => parseInt(reference.toString(), 10) - 1);
 }
@@ -79,24 +39,39 @@ const addTrianglesToAccumulator = (accumulator, face, vertexData) => {
         });
 }
 
-const getVertexInformation = (faces, vertexData) => {
-    return faces
-        .reduce((accumulator, face) => {
-            addTrianglesToAccumulator(accumulator, face, vertexData);
-            return accumulator
-        }, {
-            position: [],
-            texture: [],
-            normal: [],
-        });
-}
-
-const parseObj = (text) => {
-    const lines = getLines(text);
+const parseObjFast = (text) => {
     const vertexData = {
-        positions: getVertexPositions(lines),
-        textureCoordinates: getTextureCoordinates(lines),
-        normals: getNormals(lines),
-    }
-    return getVertexInformation(getFaces(lines), vertexData);
+        positions: [],
+        textureCoordinates: [],
+        normals: [],
+    };
+
+    const vertexInformation = {
+        position: [],
+        texture: [],
+        normal: [],
+    };
+
+    text.split('\n').forEach((line) => {
+        const trimmed = line.trim();
+        const vertexLine = trimmed.startsWith('v ');
+        const textureCoordinateLine = trimmed.startsWith('vt ');
+        const normalLine = trimmed.startsWith('vn ');
+        const faceLine = trimmed.startsWith('f ');
+
+        if (vertexLine || textureCoordinateLine || normalLine || faceLine) {
+            const tail = trimmed.split(/\s+/).slice(1);
+            if (vertexLine) {
+                vertexData.positions.push(tail.map(parseFloat));
+            } else if (textureCoordinateLine) {
+                vertexData.textureCoordinates.push(tail.map(parseFloat));
+            } else if (normalLine) {
+                vertexData.normals.push(tail.map(parseFloat));
+            } else {
+                addTrianglesToAccumulator(vertexInformation, tail, vertexData);
+            }
+        }
+    });
+
+    return vertexInformation;
 }

@@ -405,16 +405,15 @@ const enter = async () => {
         ]
     })
 
-
     const headResponse = await fetch('/obj/head.obj');
     const headText = await headResponse.text();
-    const headData = parseObj(headText);
+    const headData = parseObjFast(headText);
     const headBufferInfo = twgl.createBufferInfoFromArrays(gl, headData);
     const headVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, headBufferInfo);
 
     const firePitResponse = await fetch('/obj/fire_pit.obj');
     const firePitText = await firePitResponse.text();
-    const firePitData = parseObj(firePitText);
+    const firePitData = parseObjFast(firePitText);
     const firePitBufferInfo = twgl.createBufferInfoFromArrays(gl, firePitData);
     const firePitVao = twgl.createVAOFromBufferInfo(gl, objectMeshProgramInfo, firePitBufferInfo);
 
