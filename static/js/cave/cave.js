@@ -115,15 +115,15 @@ const moveCameraRight = () => {
 }
 
 const translateCameraToOrigin = (originalCameraPosition) => {
-    const translationToCamera = m4.translation(-originalCameraPosition[0], -originalCameraPosition[1], -originalCameraPosition[2]);
-    caveState.cameraPosition = m4.transformPoint(translationToCamera, caveState.cameraPosition);
-    caveState.cameraTarget = m4.transformPoint(translationToCamera, caveState.cameraTarget);
+    const translationToCamera = translation(-originalCameraPosition[0], -originalCameraPosition[1], -originalCameraPosition[2]);
+    caveState.cameraPosition = transformPoint(translationToCamera, caveState.cameraPosition);
+    caveState.cameraTarget = transformPoint(translationToCamera, caveState.cameraTarget);
 }
 
 const translateCameraFromOrigin = (originalCameraPosition) => {
-    const translationBack = m4.translation(originalCameraPosition[0], originalCameraPosition[1], originalCameraPosition[2]);
-    caveState.cameraPosition = m4.transformPoint(translationBack, caveState.cameraPosition);
-    caveState.cameraTarget = m4.transformPoint(translationBack, caveState.cameraTarget);
+    const translationBack = translation(originalCameraPosition[0], originalCameraPosition[1], originalCameraPosition[2]);
+    caveState.cameraPosition = transformPoint(translationBack, caveState.cameraPosition);
+    caveState.cameraTarget = transformPoint(translationBack, caveState.cameraTarget);
 }
 
 const rotateCameraUp = (originalCameraPosition) => {
@@ -133,10 +133,10 @@ const rotateCameraUp = (originalCameraPosition) => {
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
-    const pitchMatrixUp = m4.axisRotation(normalizeVector(cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
-    caveState.cameraPosition = m4.transformPoint(pitchMatrixUp, caveState.cameraPosition);
-    caveState.cameraTarget = m4.transformPoint(pitchMatrixUp, caveState.cameraTarget);
-    caveState.up = m4.transformDirection(pitchMatrixUp, caveState.up);
+    const pitchMatrixUp = axisRotation(normalizeVector(cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
+    caveState.cameraPosition = transformPoint(pitchMatrixUp, caveState.cameraPosition);
+    caveState.cameraTarget = transformPoint(pitchMatrixUp, caveState.cameraTarget);
+    caveState.up = transformDirection(pitchMatrixUp, caveState.up);
     translateCameraFromOrigin(originalCameraPosition);
 }
 
@@ -147,26 +147,26 @@ const rotateCameraDown = (originalCameraPosition) => {
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
-    const pitchMatrixDown = m4.axisRotation(normalizeVector(cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
-    caveState.cameraPosition = m4.transformPoint(pitchMatrixDown, caveState.cameraPosition);
-    caveState.cameraTarget = m4.transformPoint(pitchMatrixDown, caveState.cameraTarget);
-    caveState.up = m4.transformDirection(pitchMatrixDown, caveState.up);
+    const pitchMatrixDown = axisRotation(normalizeVector(cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
+    caveState.cameraPosition = transformPoint(pitchMatrixDown, caveState.cameraPosition);
+    caveState.cameraTarget = transformPoint(pitchMatrixDown, caveState.cameraTarget);
+    caveState.up = transformDirection(pitchMatrixDown, caveState.up);
     translateCameraFromOrigin(originalCameraPosition);
 }
 
 const rotateCameraLeft = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const yawMatrixLeft = m4.yRotation(cameraOptions.rotationSpeed);
-    caveState.cameraPosition = m4.transformPoint(yawMatrixLeft, caveState.cameraPosition);
-    caveState.cameraTarget = m4.transformPoint(yawMatrixLeft, caveState.cameraTarget);
+    const yawMatrixLeft = yRotation(cameraOptions.rotationSpeed);
+    caveState.cameraPosition = transformPoint(yawMatrixLeft, caveState.cameraPosition);
+    caveState.cameraTarget = transformPoint(yawMatrixLeft, caveState.cameraTarget);
     translateCameraFromOrigin(originalCameraPosition);
 }
 
 const rotateCameraRight = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const yawMatrixRight = m4.yRotation(-cameraOptions.rotationSpeed);
-    caveState.cameraPosition = m4.transformPoint(yawMatrixRight, caveState.cameraPosition);
-    caveState.cameraTarget = m4.transformPoint(yawMatrixRight, caveState.cameraTarget);
+    const yawMatrixRight = yRotation(-cameraOptions.rotationSpeed);
+    caveState.cameraPosition = transformPoint(yawMatrixRight, caveState.cameraPosition);
+    caveState.cameraTarget = transformPoint(yawMatrixRight, caveState.cameraTarget);
     translateCameraFromOrigin(originalCameraPosition);
 }
 
@@ -478,7 +478,7 @@ const enter = async () => {
 
         const sharedModelUniforms = {
             lightPosition: [0, 0, 0],
-            view:  m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
+            view:  inverse(lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
         };
 
@@ -488,7 +488,7 @@ const enter = async () => {
 
         gl.bindVertexArray(firePitVao);
         twgl.setUniforms(objectMeshProgramInfo, {
-            model: m4.multiply(m4.scaling(0.55, 0.55, 0.55), m4.multiply(m4.translation(0, -6, 0), m4.multiply(m4.yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
+            model: m4.multiply(m4.scaling(0.55, 0.55, 0.55), m4.multiply(translation(0, -6, 0), m4.multiply(yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
             diffuse: [0.25, 0.25, 0.25, 1],
             lightColor: normalizeVector([0.75, 0.4, 0]),
             lightIntensity: 1.0,
@@ -504,7 +504,7 @@ const enter = async () => {
             const z = Math.sin(angle) * radius;
 
             twgl.setUniforms(objectMeshProgramInfo, {
-                model: m4.multiply(m4.translation(x, 0, z), m4.lookAt([0, 0, 0], [x, 0, z], caveState.up)),
+                model: m4.multiply(translation(x, 0, z), lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
                 lightColor: normalizeVector([0.5, 0.25, 0]),
                 lightIntensity: randomFloat(0.8, 0.9),
@@ -516,8 +516,8 @@ const enter = async () => {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         twgl.setUniforms(fireMeshProgramInfo, {
-            model:  m4.multiply(m4.scaling(2, 2, 2), m4.lookAt(normalizeVector(caveState.cameraPosition), [0, 0, 0], caveState.up)),
-            view: m4.inverse(m4.lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
+            model:  m4.multiply(m4.scaling(1.95, 1.95, 1.95), lookAt(normalizeVector(caveState.cameraPosition), [0, 0, 0], caveState.up)),
+            view: inverse(lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
             projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
             frameTime: frameTime,
             scrollSpeeds: [1.3, 2.1, 2.3],
