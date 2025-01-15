@@ -66,7 +66,7 @@ const cameraOptions = {
 }
 
 const moveCameraForward = () => {
-    const viewDir = normalizeVector([
+    const viewDir = normalize([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
@@ -78,7 +78,7 @@ const moveCameraForward = () => {
 }
 
 const moveCameraBackward = () => {
-    const reverseDir = normalizeVector([
+    const reverseDir = normalize([
         (caveState.cameraTarget[0] - caveState.cameraPosition[0]) * -1,
         (caveState.cameraTarget[1] - caveState.cameraPosition[1]) * -1,
         (caveState.cameraTarget[2] - caveState.cameraPosition[2]) * -1,
@@ -91,25 +91,25 @@ const moveCameraBackward = () => {
 }
 
 const moveCameraLeft = () => {
-    const viewDir = normalizeVector([
+    const viewDir = normalize([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
 
-    const movement = scale(normalizeVector(cross(viewDir, caveState.up)), -cameraOptions.movementSpeed);
+    const movement = scale(normalize(cross(viewDir, caveState.up)), -cameraOptions.movementSpeed);
     caveState.cameraPosition = addVectors(caveState.cameraPosition, movement);
     caveState.cameraTarget = addVectors(caveState.cameraTarget, movement);
 }
 
 const moveCameraRight = () => {
-    const viewDir = normalizeVector([
+    const viewDir = normalize([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
 
-    const movement = scale(normalizeVector(cross(viewDir, caveState.up)), cameraOptions.movementSpeed);
+    const movement = scale(normalize(cross(viewDir, caveState.up)), cameraOptions.movementSpeed);
     caveState.cameraPosition = addVectors(caveState.cameraPosition, movement);
     caveState.cameraTarget = addVectors(caveState.cameraTarget, movement);
 }
@@ -128,12 +128,12 @@ const translateCameraFromOrigin = (originalCameraPosition) => {
 
 const rotateCameraUp = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const viewDir = normalizeVector([
+    const viewDir = normalize([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
-    const pitchMatrixUp = axisRotation(normalizeVector(cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
+    const pitchMatrixUp = axisRotation(normalize(cross(viewDir, caveState.up)), cameraOptions.rotationSpeed);
     caveState.cameraPosition = transformPoint(pitchMatrixUp, caveState.cameraPosition);
     caveState.cameraTarget = transformPoint(pitchMatrixUp, caveState.cameraTarget);
     caveState.up = transformDirection(pitchMatrixUp, caveState.up);
@@ -142,12 +142,12 @@ const rotateCameraUp = (originalCameraPosition) => {
 
 const rotateCameraDown = (originalCameraPosition) => {
     translateCameraToOrigin(originalCameraPosition);
-    const viewDir = normalizeVector([
+    const viewDir = normalize([
         caveState.cameraTarget[0] - caveState.cameraPosition[0],
         caveState.cameraTarget[1] - caveState.cameraPosition[1],
         caveState.cameraTarget[2] - caveState.cameraPosition[2],
     ]);
-    const pitchMatrixDown = axisRotation(normalizeVector(cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
+    const pitchMatrixDown = axisRotation(normalize(cross(viewDir, caveState.up)), -cameraOptions.rotationSpeed);
     caveState.cameraPosition = transformPoint(pitchMatrixDown, caveState.cameraPosition);
     caveState.cameraTarget = transformPoint(pitchMatrixDown, caveState.cameraTarget);
     caveState.up = transformDirection(pitchMatrixDown, caveState.up);
@@ -479,18 +479,19 @@ const enter = async () => {
         const sharedModelUniforms = {
             lightPosition: [0, 0, 0],
             view:  inverse(lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
-            projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
+            projection: perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
         };
 
         gl.useProgram(objectMeshProgramInfo.program);
 
         twgl.setUniforms(objectMeshProgramInfo, sharedModelUniforms);
 
+
         gl.bindVertexArray(firePitVao);
         twgl.setUniforms(objectMeshProgramInfo, {
-            model: m4.multiply(m4.scaling(0.55, 0.55, 0.55), m4.multiply(translation(0, -6, 0), m4.multiply(yRotation(degreesToRadians(30)), m4.xRotation(degreesToRadians(-90))))),
+            model:  xRotate(yRotate(translate(scale(identity(), 0.55, 0.55, 0.55), 0, -6, 0), degreesToRadians(30)), degreesToRadians(-90)),
             diffuse: [0.25, 0.25, 0.25, 1],
-            lightColor: normalizeVector([0.75, 0.4, 0]),
+            lightColor: normalize([0.75, 0.4, 0]),
             lightIntensity: 1.0,
         });
         twgl.drawBufferInfo(gl, firePitBufferInfo);
@@ -504,9 +505,9 @@ const enter = async () => {
             const z = Math.sin(angle) * radius;
 
             twgl.setUniforms(objectMeshProgramInfo, {
-                model: m4.multiply(translation(x, 0, z), lookAt([0, 0, 0], [x, 0, z], caveState.up)),
+                model: multiply(translation(x, 0, z), lookAt([0, 0, 0], [x, 0, z], caveState.up)),
                 diffuse: [0.5, 0.5, 0.5, 1],
-                lightColor: normalizeVector([0.5, 0.25, 0]),
+                lightColor: normalize([0.5, 0.25, 0]),
                 lightIntensity: randomFloat(0.8, 0.9),
             });
             twgl.drawBufferInfo(gl, headBufferInfo);
@@ -516,9 +517,9 @@ const enter = async () => {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         twgl.setUniforms(fireMeshProgramInfo, {
-            model:  m4.multiply(m4.scaling(1.95, 1.95, 1.95), lookAt(normalizeVector(caveState.cameraPosition), [0, 0, 0], caveState.up)),
+            model:  multiply(scaling(1.95, 1.95, 1.95), lookAt(normalize(caveState.cameraPosition), [0, 0, 0], caveState.up)),
             view: inverse(lookAt(caveState.cameraPosition, caveState.cameraTarget, caveState.up)),
-            projection: m4.perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
+            projection: perspective(degreesToRadians(60), gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 50),
             frameTime: frameTime,
             scrollSpeeds: [1.3, 2.1, 2.3],
             scales: [1.0, 2.0, 3.0],

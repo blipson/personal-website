@@ -1,4 +1,4 @@
-const normalizeVector = (vector) => {
+const normalize = (vector) => {
     const length = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
     return (length > 0.00001) ?
         [
@@ -23,6 +23,144 @@ const scale = (matrix, x, y, z) => {
         z * matrix[9],
         z * matrix[10],
         z * matrix[11],
+        matrix[12],
+        matrix[13],
+        matrix[14],
+        matrix[15],
+    ];
+}
+
+const setMatrix = (matrix) => {
+    const matrix0 = matrix[0];
+    const matrix1 = matrix[1];
+    const matrix2 = matrix[2];
+    const matrix3 = matrix[3];
+    const matrix4 = matrix[4];
+    const matrix5 = matrix[5];
+    const matrix6 = matrix[6];
+    const matrix7 = matrix[7];
+    const matrix8 = matrix[8];
+    const matrix9 = matrix[9];
+    const matrix10 = matrix[10];
+    const matrix11 = matrix[11];
+    const matrix12 = matrix[12];
+    const matrix13 = matrix[13];
+    const matrix14 = matrix[14];
+    const matrix15 = matrix[15];
+    return {
+        matrix0,
+        matrix1,
+        matrix2,
+        matrix3,
+        matrix4,
+        matrix5,
+        matrix6,
+        matrix7,
+        matrix8,
+        matrix9,
+        matrix10,
+        matrix11,
+        matrix12,
+        matrix13,
+        matrix14,
+        matrix15
+    };
+}
+
+const translate = (matrix, x, y, z) => {
+    const {
+        matrix0,
+        matrix1,
+        matrix2,
+        matrix3,
+        matrix4,
+        matrix5,
+        matrix6,
+        matrix7,
+        matrix8,
+        matrix9,
+        matrix10,
+        matrix11,
+        matrix12,
+        matrix13,
+        matrix14,
+        matrix15
+    } = setMatrix(matrix);
+    return [matrix0,
+        matrix1,
+        matrix2,
+        matrix3,
+        matrix4,
+        matrix5,
+        matrix6,
+        matrix7,
+        matrix8,
+        matrix9,
+        matrix10,
+        matrix11,
+        matrix0 * x + matrix4 * y + matrix8 * z + matrix12,
+        matrix1 * x + matrix5 * y + matrix9 * z + matrix13,
+        matrix2 * x + matrix6 * y + matrix10 * z + matrix14,
+        matrix3 * x + matrix7 * y + matrix11 * z + matrix15,
+    ];
+}
+
+const xRotate = (matrix, angleInRadians) => {
+    const matrix4 = matrix[4];
+    const matrix5 = matrix[5];
+    const matrix6 = matrix[6];
+    const matrix7 = matrix[7];
+    const matrix8 = matrix[8];
+    const matrix9 = matrix[9];
+    const matrix10 = matrix[10];
+    const matrix11 = matrix[11];
+    const cosine = Math.cos(angleInRadians);
+    const sine = Math.sin(angleInRadians);
+
+    return [
+        matrix[0],
+        matrix[1],
+        matrix[2],
+        matrix[3],
+        cosine * matrix4 + sine * matrix8,
+        cosine * matrix5 + sine * matrix9,
+        cosine * matrix6 + sine * matrix10,
+        cosine * matrix7 + sine * matrix11,
+        cosine * matrix8 - sine * matrix4,
+        cosine * matrix9 - sine * matrix5,
+        cosine * matrix10 - sine * matrix6,
+        cosine * matrix11 - sine * matrix7,
+        matrix[12],
+        matrix[13],
+        matrix[14],
+        matrix[15],
+    ];
+}
+
+const yRotate = (matrix, angleInRadians) => {
+    const matrix0 = matrix[0];
+    const matrix1 = matrix[1];
+    const matrix2 = matrix[2];
+    const matrix3 = matrix[3];
+    const matrix8 = matrix[8];
+    const matrix9 = matrix[9];
+    const matrix10 = matrix[10];
+    const matrix11 = matrix[11];
+    const cosine = Math.cos(angleInRadians);
+    const sine = Math.sin(angleInRadians);
+    return [
+        cosine * matrix0 - sine * matrix8,
+        cosine * matrix1 - sine * matrix9,
+        cosine * matrix2 - sine * matrix10,
+        cosine * matrix3 - sine * matrix11,
+        matrix[4],
+        matrix[5],
+        matrix[6],
+        matrix[7],
+        cosine * matrix8 + sine * matrix0,
+        cosine * matrix9 + sine * matrix1,
+        cosine * matrix10 + sine * matrix2,
+        cosine * matrix11 + sine * matrix3,
         matrix[12],
         matrix[13],
         matrix[14],
@@ -148,22 +286,24 @@ const yRotation = (angleInRadians) => {
 }
 
 const inverse = (matrix) => {
-    const matrix0 = matrix[0];
-    const matrix1 = matrix[1];
-    const matrix2 = matrix[2];
-    const matrix3 = matrix[3];
-    const matrix4 = matrix[4];
-    const matrix5 = matrix[5];
-    const matrix6 = matrix[6];
-    const matrix7 = matrix[7];
-    const matrix8 = matrix[8];
-    const matrix9 = matrix[9];
-    const matrix10 = matrix[10];
-    const matrix11 = matrix[11];
-    const matrix12 = matrix[12];
-    const matrix13 = matrix[13];
-    const matrix14 = matrix[14];
-    const matrix15 = matrix[15];
+    const {
+        matrix0,
+        matrix1,
+        matrix2,
+        matrix3,
+        matrix4,
+        matrix5,
+        matrix6,
+        matrix7,
+        matrix8,
+        matrix9,
+        matrix10,
+        matrix11,
+        matrix12,
+        matrix13,
+        matrix14,
+        matrix15
+    } = setMatrix(matrix);
     const tmp0 = matrix10 * matrix15;
     const tmp1 = matrix14 * matrix11;
     const tmp2 = matrix6 * matrix15;
@@ -232,20 +372,20 @@ const inverse = (matrix) => {
     ];
 }
 
-const subtractVectors = (vector1, vector2) => {
+const subtractVectors = (vectorToSubtractFrom, vectorToSubtract) => {
     return [
-        vector1[0] - vector2[0],
-        vector1[1] - vector2[1],
-        vector1[2] - vector2[2],
+        vectorToSubtractFrom[0] - vectorToSubtract[0],
+        vectorToSubtractFrom[1] - vectorToSubtract[1],
+        vectorToSubtractFrom[2] - vectorToSubtract[2],
     ];
 }
 
 
 const lookAt = (cameraPosition, target, up) => {
-    const zAxis = normalizeVector(
+    const zAxis = normalize(
         subtractVectors(cameraPosition, target));
-    const xAxis = normalizeVector(cross(up, zAxis));
-    const yAxis = normalizeVector(cross(zAxis, xAxis));
+    const xAxis = normalize(cross(up, zAxis));
+    const yAxis = normalize(cross(zAxis, xAxis));
     return [
         xAxis[0],
         xAxis[1],
@@ -266,3 +406,121 @@ const lookAt = (cameraPosition, target, up) => {
     ];
 }
 
+const scaling = (x, y, z) => {
+    return [
+        x,
+        0,
+        0,
+        0,
+        0,
+        y,
+        0,
+        0,
+        0,
+        0,
+        z,
+        0,
+        0,
+        0,
+        0,
+        1,
+    ];
+}
+
+
+const identity = () => {
+    return [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+    ];
+}
+
+const perspective = (fieldOfViewInRadians, aspect, near, far) => {
+    const scalingFactor = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+    const rangeInverse = 1.0 / (near - far);
+    return [
+        scalingFactor / aspect,
+        0,
+        0,
+        0,
+        0,
+        scalingFactor,
+        0,
+        0,
+        0,
+        0,
+        (near + far) * rangeInverse,
+        -1,
+        0,
+        0,
+        near * far * rangeInverse * 2,
+        0,
+    ];
+}
+
+const multiply = (firstMatrix, secondMatrix) => {
+    const secondMatrix0 = secondMatrix[0];
+    const secondMatrix1 = secondMatrix[1];
+    const secondMatrix2 = secondMatrix[2];
+    const secondMatrix3 = secondMatrix[3];
+    const secondMatrix4 = secondMatrix[4];
+    const secondMatrix5 = secondMatrix[5];
+    const secondMatrix6 = secondMatrix[6];
+    const secondMatrix7 = secondMatrix[7];
+    const secondMatrix8 = secondMatrix[8];
+    const secondMatrix9 = secondMatrix[9];
+    const secondMatrix10 = secondMatrix[10];
+    const secondMatrix11 = secondMatrix[11];
+    const secondMatrix12 = secondMatrix[12];
+    const secondMatrix13 = secondMatrix[13];
+    const secondMatrix14 = secondMatrix[14];
+    const secondMatrix15 = secondMatrix[15];
+    const firstMatrix0 = firstMatrix[0];
+    const firstMatrix1 = firstMatrix[1];
+    const firstMatrix2 = firstMatrix[2];
+    const firstMatrix3 = firstMatrix[3];
+    const firstMatrix4 = firstMatrix[4];
+    const firstMatrix5 = firstMatrix[5];
+    const firstMatrix6 = firstMatrix[6];
+    const firstMatrix7 = firstMatrix[7];
+    const firstMatrix8 = firstMatrix[8];
+    const firstMatrix9 = firstMatrix[9];
+    const firstMatrix10 = firstMatrix[10];
+    const firstMatrix11 = firstMatrix[11];
+    const firstMatrix12 = firstMatrix[12];
+    const firstMatrix13 = firstMatrix[13];
+    const firstMatrix14 = firstMatrix[14];
+    const firstMatrix15 = firstMatrix[15];
+    return [
+        secondMatrix0 * firstMatrix0 + secondMatrix1 * firstMatrix4 + secondMatrix2 * firstMatrix8 + secondMatrix3 * firstMatrix12,
+        secondMatrix0 * firstMatrix1 + secondMatrix1 * firstMatrix5 + secondMatrix2 * firstMatrix9 + secondMatrix3 * firstMatrix13,
+        secondMatrix0 * firstMatrix2 + secondMatrix1 * firstMatrix6 + secondMatrix2 * firstMatrix10 + secondMatrix3 * firstMatrix14,
+        secondMatrix0 * firstMatrix3 + secondMatrix1 * firstMatrix7 + secondMatrix2 * firstMatrix11 + secondMatrix3 * firstMatrix15,
+        secondMatrix4 * firstMatrix0 + secondMatrix5 * firstMatrix4 + secondMatrix6 * firstMatrix8 + secondMatrix7 * firstMatrix12,
+        secondMatrix4 * firstMatrix1 + secondMatrix5 * firstMatrix5 + secondMatrix6 * firstMatrix9 + secondMatrix7 * firstMatrix13,
+        secondMatrix4 * firstMatrix2 + secondMatrix5 * firstMatrix6 + secondMatrix6 * firstMatrix10 + secondMatrix7 * firstMatrix14,
+        secondMatrix4 * firstMatrix3 + secondMatrix5 * firstMatrix7 + secondMatrix6 * firstMatrix11 + secondMatrix7 * firstMatrix15,
+        secondMatrix8 * firstMatrix0 + secondMatrix9 * firstMatrix4 + secondMatrix10 * firstMatrix8 + secondMatrix11 * firstMatrix12,
+        secondMatrix8 * firstMatrix1 + secondMatrix9 * firstMatrix5 + secondMatrix10 * firstMatrix9 + secondMatrix11 * firstMatrix13,
+        secondMatrix8 * firstMatrix2 + secondMatrix9 * firstMatrix6 + secondMatrix10 * firstMatrix10 + secondMatrix11 * firstMatrix14,
+        secondMatrix8 * firstMatrix3 + secondMatrix9 * firstMatrix7 + secondMatrix10 * firstMatrix11 + secondMatrix11 * firstMatrix15,
+        secondMatrix12 * firstMatrix0 + secondMatrix13 * firstMatrix4 + secondMatrix14 * firstMatrix8 + secondMatrix15 * firstMatrix12,
+        secondMatrix12 * firstMatrix1 + secondMatrix13 * firstMatrix5 + secondMatrix14 * firstMatrix9 + secondMatrix15 * firstMatrix13,
+        secondMatrix12 * firstMatrix2 + secondMatrix13 * firstMatrix6 + secondMatrix14 * firstMatrix10 + secondMatrix15 * firstMatrix14,
+        secondMatrix12 * firstMatrix3 + secondMatrix13 * firstMatrix7 + secondMatrix14 * firstMatrix11 + secondMatrix15 * firstMatrix15,
+    ];
+}
