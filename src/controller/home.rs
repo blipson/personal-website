@@ -31,7 +31,7 @@ pub fn internal_error() -> &'static str {
 
 #[catch(404)]
 pub async fn not_found() -> Result<NamedFile, std::io::Error> {
-    let file_idx = rand::thread_rng().gen_range(0..NOT_FOUND_FILES.len());
+    let file_idx = rand::rng().random_range(0..NOT_FOUND_FILES.len());
     let chosen = NOT_FOUND_FILES[file_idx];
     let dir = "templates/404";
     NamedFile::open(Path::new(dir).join(chosen)).await

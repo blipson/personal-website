@@ -1,6 +1,6 @@
 /*
     Personal website of Ben Gangl-Lipson
-    Copyright (C) 2024 Ben Gangl-Lipson
+    Copyright (C) 2025 Ben Gangl-Lipson
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,8 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-pub mod home;
-pub mod graphics;
-pub mod demo;
-pub(crate) mod compiler;
-pub(crate) mod ai;
+use rocket::fs::NamedFile;
+
+#[get("/")]
+pub async fn root() -> Result<NamedFile, std::io::Error> {
+    NamedFile::open("templates/ai.html").await
+}

@@ -36,5 +36,7 @@ pub fn rocket() -> _ {
         .mount("/", FileServer::from("static"))
         .mount("/", routes![controller::home::health, controller::home::root])
         .mount("/graphics", routes![controller::graphics::root, controller::graphics::ascii])
+        .mount("/ai", routes![controller::ai::root])
+        .mount("/compiler", routes![controller::compiler::root])
         .mount("/demo", routes![controller::demo::cave])
 }
